@@ -1,53 +1,51 @@
-# 🔍 TokenTrace: Eco-Conscious Prompt Auditor 
+# 🔍 TokenTrace: The Eco-Conscious Prompt Auditor for Developers
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![Gemini AI](https://img.shields.io/badge/Gemini_1.5_Flash-4285F4?style=for-the-badge&logo=google-gemini&logoColor=white)
 
 > **Developed by Team Visionauts**
 > 
-> **The Problem:** 40% of AI tokens are wasted on conversational "noise" (filler words). This leads to increased latency, higher API costs, and a massive, invisible carbon and water footprint.
+> **Target Audience:** Prompt Engineers, AI Developers, and DevOps Teams.
 >
-> **The Solution:** TokenTrace is a high-performance dashboard that audits prompts, "slays" computational waste, and provides real-time transparency into the environmental impact of LLM usage.
+> **The Problem:** Modern AI development suffers from "Token Bloat." 40% of prompt volume is often conversational noise, leading to higher API latency, ballooning costs, and an unnecessary environmental footprint.
+>
+> **The Solution:** TokenTrace is a developer-first tool designed to audit, optimize, and "slay" computational waste at the source. It provides the transparency needed to build sustainable, cost-efficient AI pipelines.
 
 ---
 
-## 🚀 Key Features
+## 🛠️ Built for Developers
 
-### 1. **Audit & Slay (Smart Trimmer)**
-Leverages a specialized **Gemini 1.5 Flash** agent to analyze prompts and remove "token fluff" (e.g., "please," "kindly," greetings) while retaining 100% of the core instructional intent.
+Unlike generic AI tools, **TokenTrace** is engineered for the developer workflow:
 
-### 2. **Bioluminescent Heat-Map**
-Visualizes token importance using a "High-Tech Heat-Map" directly in the UI.
-- **Blue/Glow:** High-importance keywords and directives.
-- **Faded/Grey:** Computational noise that can be safely removed to save energy.
+### ⚡ Prompt Refactoring (Audit & Slay)
+Developers can instantly refactor "wordy" prompts into lean, high-performance instructions. By using **Gemini 1.5 Flash** to audit input, TokenTrace ensures that only high-value tokens are sent to expensive models like GPT-4 or Claude Opus.
 
-### 3. **Eco-Impact Dashboard**
-Tracks the "Hidden Cost of Inference" with precise metrics:
-- **$CO_2$ Saved (g):** Avoided emissions through token reduction.
-- **Water Saved (ml):** Real-time tracking of data center cooling requirements saved per audit.
-- **Cost Efficiency:** Direct mapping of saved tokens to financial savings.
+### 🗺️ Visual Token Analytics (Heat-Map)
+A bioluminescent heat-map allows engineers to debug prompt importance in real-time. 
+- Identify which tokens are driving the logic.
+- Visualizing "Ghost Tokens" (low-impact noise) that can be removed to reduce latency.
 
----
-
-## 🛠️ The Tech Stack
-
-- **Frontend:** React (Vite) + TypeScript for a high-performance, type-safe developer experience.
-- **Styling:** Tailwind CSS with a custom **"Midnight Eco"** theme designed for maximum readability and a premium engineering feel.
-- **Inference Engine:** Google Gemini 1.5 Flash for low-latency, energy-efficient prompt auditing.
-- **Icons:** Lucide-React for a minimalist, professional aesthetic.
+### 📊 Sustainability CI/CD Metrics
+Track the **Hidden Cost of Inference**. TokenTrace gives developers the data they need for Green-Software reporting:
+- **$CO_2$ Avoided:** Emissions saved per optimized request.
+- **Thermal Efficiency:** Tracking the water footprint of data center cooling.
+- **Cost Reduction:** Direct mapping of saved tokens to API billing.
 
 ---
 
-## 🌍 The Mission
-In an era of scaling AI, **Inference is the new invisible carbon.** TokenTrace shifts the focus from model output to **Input Efficiency**. By optimizing the prompt before it hits a large-scale model, we achieve a significant Return on Investment (ROI) for both the planet and the enterprise.
+## 🏗️ Technical Architecture
+
+- **Engine:** Gemini 1.5 Flash (chosen for its high-speed/low-energy profile).
+- **Frontend:** React + Vite (Optimized for developer-speed).
+- **Type Safety:** 100% TypeScript for robust prompt-handling logic.
+- **UI/UX:** A "Midnight Audit" theme inspired by high-end engineering tools like LangSmith.
 
 ---
 
-## 💻 Installation & Setup
+## 💻 Getting Started
 
-1. **Clone the repository:**
+1. **Clone & Install:**
    ```bash
    git clone [https://github.com/AshmithaStephen/Visionauts.git](https://github.com/AshmithaStephen/Visionauts.git)
-   cd Visionauts
+   cd Visionauts && npm install
