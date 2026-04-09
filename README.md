@@ -1,7 +1,3 @@
-# Visionauts
-TokenScope
-team members- 
-Ashmitha Stephen
-Laikha Begum
-Cyrus Santhosh
-Krithik J
+# Welcome to your Lovable project
+
+TODO: Document your project here

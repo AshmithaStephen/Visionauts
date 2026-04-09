@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 80%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
+
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+    --heat-high: 0 84% 60%;
+    --heat-med: 45 93% 58%;
+    --heat-low: 0 0% 40%;
+
+    --eco-green: 142 71% 45%;
+    --eco-blue: 199 89% 48%;
+    --eco-amber: 38 92% 50%;
+
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    @apply backdrop-blur-md rounded-xl;
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  .text-glow {
+    text-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+  }
+  .heat-high {
+    color: hsl(var(--heat-high));
+    background: hsl(var(--heat-high) / 0.15);
+  }
+  .heat-med {
+    color: hsl(var(--heat-med));
+    background: hsl(var(--heat-med) / 0.1);
+  }
+  .heat-low {
+    color: hsl(var(--muted-foreground));
+  }
+  .ghost-token {
+    opacity: 0.2;
+    text-decoration: line-through;
+    transition: opacity 0.3s ease, text-decoration 0.3s ease;
+  }
+}
