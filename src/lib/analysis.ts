@@ -4,13 +4,15 @@ export interface ModelInfo {
   name: string;
   inputCostPer1M: number;  // USD per 1M input tokens
   outputCostPer1M: number; // USD per 1M output tokens
-  carbonPer1kTokens: number; // grams CO2
+  carbonPer1kTokens: number; // grams CO2 per 1000 tokens
+  waterMlPerQuery: number; // ml water per query
+  energyWhPerQuery: number; // watt-hours per query
 }
 
 export const MODELS: Record<string, ModelInfo> = {
-  "gpt-4o": { id: "gpt-4o", name: "GPT-4o", inputCostPer1M: 5, outputCostPer1M: 15, carbonPer1kTokens: 0.5 },
-  "gpt-3.5-turbo": { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", inputCostPer1M: 0.5, outputCostPer1M: 1.5, carbonPer1kTokens: 0.15 },
-  "gemini-1.5-flash": { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", inputCostPer1M: 0.075, outputCostPer1M: 0.3, carbonPer1kTokens: 0.2 },
+  "gpt-4o": { id: "gpt-4o", name: "GPT-4o", inputCostPer1M: 5, outputCostPer1M: 15, carbonPer1kTokens: 0.5, waterMlPerQuery: 0.5, energyWhPerQuery: 0.01 },
+  "gpt-3.5-turbo": { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", inputCostPer1M: 0.5, outputCostPer1M: 1.5, carbonPer1kTokens: 0.15, waterMlPerQuery: 0.3, energyWhPerQuery: 0.005 },
+  "gemini-1.5-flash": { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", inputCostPer1M: 0.075, outputCostPer1M: 0.3, carbonPer1kTokens: 0.03, waterMlPerQuery: 0.26, energyWhPerQuery: 0.24 },
 };
 
 // Simple tokenizer (approximation: ~4 chars per token for English)
@@ -98,8 +100,8 @@ export interface EcoImpact {
 
 export function calculateEco(totalTokens: number, model: ModelInfo): EcoImpact {
   const carbonGrams = (totalTokens / 1000) * model.carbonPer1kTokens;
-  const waterMl = totalTokens * 0.5;
-  const energyWh = totalTokens * 0.001;
+  const waterMl = model.waterMlPerQuery;
+  const energyWh = model.energyWhPerQuery;
 
   const carbonAnalogy = carbonGrams < 1 
     ? `~${(carbonGrams * 1000).toFixed(0)}mg — a single breath` 

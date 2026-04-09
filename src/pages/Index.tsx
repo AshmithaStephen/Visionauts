@@ -14,7 +14,7 @@ type ViewMode = "normal" | "heatmap" | "ghost";
 
 export default function Index() {
   const [prompt, setPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gpt-4o");
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -32,23 +32,93 @@ export default function Index() {
     setViewMode("normal");
     setSavings(null);
 
-    // Simulate async processing
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const apiResponse = await fetch('http://localhost:8000/api/v1/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          model: selectedModel
+        }),
+      });
 
-    const model = MODELS[selectedModel];
-    const tfidfTokens = analyzeTfIdf(prompt);
-    const mockResponse = generateMockResponse(prompt);
-    const inputTokenCount = countTokens(prompt);
-    const outputTokenCount = countTokens(mockResponse);
-    const costResult = calculateCost(inputTokenCount, outputTokenCount, model);
-    const ecoResult = calculateEco(inputTokenCount + outputTokenCount, model);
+      if (!apiResponse.ok) {
+        throw new Error(`API error: ${apiResponse.status}`);
+      }
 
-    setTokens(tfidfTokens);
-    setResponse(mockResponse);
-    setCost(costResult);
-    setEco(ecoResult);
-    setIsAnalyzing(false);
-    setViewMode("heatmap");
+      const data = await apiResponse.json();
+
+      // Process token scores to match frontend format
+      const processedTokens: TokenAnalysis[] = data.token_scores.map((t: { word: string; score: number }) => ({
+        word: t.word,
+        score: t.score,
+        isStopWord: t.score === 0.1
+      }));
+
+      // Calculate cost breakdown
+      const totalTokens = data.metrics.total_tokens;
+      const inputTokens = data.metrics.input_tokens;
+      const outputTokens = data.metrics.output_tokens;
+      const totalCost = data.metrics.cost_usd;
+      const inputRatio = inputTokens / totalTokens;
+      const outputRatio = outputTokens / totalTokens;
+
+      const costResult: CostResult = {
+        inputTokens,
+        outputTokens,
+        inputCost: totalCost * inputRatio,
+        outputCost: totalCost * outputRatio,
+        totalCost
+      };
+
+      // Get eco data from backend
+      const model = MODELS[selectedModel];
+      const ecoResult: EcoImpact = {
+        carbonGrams: data.metrics.carbon_g,
+        waterMl: data.metrics.water_ml,
+        energyWh: data.metrics.energy_wh,
+        carbonAnalogy: data.metrics.carbon_g < 1 
+          ? `~${(data.metrics.carbon_g * 1000).toFixed(0)}mg — a single breath` 
+          : data.metrics.carbon_g < 10 
+          ? `Like charging your phone for ${(data.metrics.carbon_g / 8).toFixed(1)} minutes`
+          : `Equivalent to driving ${(data.metrics.carbon_g / 200).toFixed(2)} km`,
+        waterAnalogy: data.metrics.water_ml < 15 
+          ? `About ${Math.ceil(data.metrics.water_ml / 5)} sips of water`
+          : data.metrics.water_ml < 250
+          ? `~${(data.metrics.water_ml / 250).toFixed(1)} cups of water`
+          : `About ${(data.metrics.water_ml / 500).toFixed(1)} water bottles`,
+        energyAnalogy: data.metrics.energy_wh < 1
+          ? `${(data.metrics.energy_wh * 3600).toFixed(0)} joules — a LED bulb for ${(data.metrics.energy_wh / 0.01 * 36).toFixed(0)}s`
+          : `Running a 60W bulb for ${(data.metrics.energy_wh / 60 * 60).toFixed(1)} minutes`
+      };
+
+      setTokens(processedTokens);
+      setResponse(data.ai_response);
+      setCost(costResult);
+      setEco(ecoResult);
+      setViewMode("heatmap");
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      // Fallback to mock data if API fails
+      const model = MODELS[selectedModel];
+      const tfidfTokens = analyzeTfIdf(prompt);
+      const mockResponse = generateMockResponse(prompt);
+      const inputTokenCount = countTokens(prompt);
+      const outputTokenCount = countTokens(mockResponse);
+      const costResult = calculateCost(inputTokenCount, outputTokenCount, model);
+      const ecoResult = calculateEco(inputTokenCount + outputTokenCount, model);
+
+      setTokens(tfidfTokens);
+      setResponse(mockResponse);
+      setCost(costResult);
+      setEco(ecoResult);
+      setViewMode("heatmap");
+    } finally {
+      setIsAnalyzing(false);
+    }
   }, [prompt, selectedModel]);
 
   const handleTrim = useCallback(() => {

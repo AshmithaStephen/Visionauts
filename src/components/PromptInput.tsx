@@ -30,9 +30,10 @@ export function PromptInput({
 
   function getTokenClass(score: number): string {
     if (viewMode === "heatmap") {
-      if (score >= 0.6) return "heat-high";
-      if (score >= 0.3) return "heat-med";
-      return "heat-low";
+      if (score >= 0.75) return "bg-red-500/40";
+      if (score >= 0.5) return "bg-orange-500/40";
+      if (score >= 0.3) return "bg-yellow-500/40";
+      return "bg-transparent";
     }
     if (viewMode === "ghost" && score >= 0 && score < 0.2) {
       return "ghost-token";
