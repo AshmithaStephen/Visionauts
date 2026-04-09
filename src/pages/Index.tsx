@@ -1,20 +1,26 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { PromptInput } from "@/components/PromptInput";
 import { ResponsePanel } from "@/components/ResponsePanel";
 import { AnalyticsSidebar } from "@/components/AnalyticsSidebar";
 import { TrimmedPromptModal } from "@/components/TrimmedPromptModal";
+import { analyzePrompt } from "@/services/api";
 import {
-  MODELS, countTokens, analyzeTfIdf, calculateCost, calculateEco,
-  generateMockResponse, trimPrompt,
-  type TokenAnalysis, type CostResult, type EcoImpact,
+  MODELS,
+  countTokens,
+  calculateCost,
+  calculateEco,
+  trimPrompt,
+  type TokenAnalysis,
+  type CostResult,
+  type EcoImpact,
 } from "@/lib/analysis";
 
 type ViewMode = "normal" | "heatmap" | "ghost";
 
 export default function Index() {
   const [prompt, setPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gpt-4o");
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -25,6 +31,8 @@ export default function Index() {
   const [savings, setSavings] = useState<{ percentage: number; savedCost: number } | null>(null);
   const [showTrimModal, setShowTrimModal] = useState(false);
   const [trimmedText, setTrimmedText] = useState("");
+  const [inputTokens, setInputTokens] = useState(0);
+  const [outputTokens, setOutputTokens] = useState(0);
 
   const handleAnalyze = useCallback(async () => {
     if (!prompt.trim()) return;
@@ -32,24 +40,48 @@ export default function Index() {
     setViewMode("normal");
     setSavings(null);
 
-    // Simulate async processing
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const payload = await analyzePrompt({ prompt, model: selectedModel });
+      const model = MODELS[selectedModel];
+
+      const tokenAnalysis = payload.token_scores.map((token) => ({
+        word: token.word,
+        score: token.score,
+        isStopWord: token.score <= 0.1,
+      }));
+
+      setTokens(tokenAnalysis);
+      setResponse(payload.ai_response);
+
+      // Persist token counts so the useEffect can recalculate on model change
+      setInputTokens(payload.metrics.input_tokens);
+      setOutputTokens(payload.metrics.output_tokens);
+
+      setCost(calculateCost(payload.metrics.input_tokens, payload.metrics.output_tokens, model));
+      setEco(calculateEco(payload.metrics.total_tokens, model));
+      setViewMode("heatmap");
+    } catch (error) {
+      console.error("Analysis request failed", error);
+      setResponse("Unable to connect to the analysis service. Please check your backend and try again.");
+      setTokens([]);
+      setCost(null);
+      setEco(null);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [prompt, selectedModel]);
+
+  // ── Recalculate cost & eco whenever the model changes (no re-analysis needed) ──
+  useEffect(() => {
+    if (inputTokens <= 0) return; // nothing to recalculate yet
 
     const model = MODELS[selectedModel];
-    const tfidfTokens = analyzeTfIdf(prompt);
-    const mockResponse = generateMockResponse(prompt);
-    const inputTokenCount = countTokens(prompt);
-    const outputTokenCount = countTokens(mockResponse);
-    const costResult = calculateCost(inputTokenCount, outputTokenCount, model);
-    const ecoResult = calculateEco(inputTokenCount + outputTokenCount, model);
+    if (!model) return;
 
-    setTokens(tfidfTokens);
-    setResponse(mockResponse);
-    setCost(costResult);
-    setEco(ecoResult);
-    setIsAnalyzing(false);
-    setViewMode("heatmap");
-  }, [prompt, selectedModel]);
+    const totalTokens = inputTokens + outputTokens;
+    setCost(calculateCost(inputTokens, outputTokens, model));
+    setEco(calculateEco(totalTokens, model));
+  }, [selectedModel, inputTokens, outputTokens]);
 
   const handleTrim = useCallback(() => {
     const trimmed = trimPrompt(tokens);
@@ -97,7 +129,7 @@ export default function Index() {
       <footer className="p-4 border-t border-border">
         <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
           <span>TokenScope — AI Prompt Analytics Dashboard</span>
-          <span>Pricing benchmarks as of 2024. Mock data for MVP.</span>
+          <span>Pricing benchmarks as of 2024. Live Gemini API analytics enabled.</span>
         </div>
       </footer>
 

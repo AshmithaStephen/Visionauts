@@ -4,13 +4,18 @@ export interface ModelInfo {
   name: string;
   inputCostPer1M: number;  // USD per 1M input tokens
   outputCostPer1M: number; // USD per 1M output tokens
-  carbonPer1kTokens: number; // grams CO2
+  carbonPer1kTokens: number; // grams CO2 baseline
+  carbonMultiplier: number;  // relative energy intensity (1.0 = baseline)
+  waterMultiplier: number;   // relative water-cooling intensity (1.0 = baseline)
 }
 
 export const MODELS: Record<string, ModelInfo> = {
-  "gpt-4o": { id: "gpt-4o", name: "GPT-4o", inputCostPer1M: 5, outputCostPer1M: 15, carbonPer1kTokens: 0.5 },
-  "gpt-3.5-turbo": { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", inputCostPer1M: 0.5, outputCostPer1M: 1.5, carbonPer1kTokens: 0.15 },
-  "gemini-1.5-flash": { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", inputCostPer1M: 0.075, outputCostPer1M: 0.3, carbonPer1kTokens: 0.2 },
+  "gemini-1.5-flash":   { id: "gemini-1.5-flash",   name: "Gemini 1.5 Flash",    inputCostPer1M: 0.075,  outputCostPer1M: 0.30,  carbonPer1kTokens: 0.20,  carbonMultiplier: 0.8,  waterMultiplier: 0.7  },
+  "gpt-4o":             { id: "gpt-4o",             name: "GPT-4o",              inputCostPer1M: 2.50,   outputCostPer1M: 10.00, carbonPer1kTokens: 0.50,  carbonMultiplier: 1.8,  waterMultiplier: 1.6  },
+  "gpt-4o-mini":        { id: "gpt-4o-mini",        name: "GPT-4o Mini",         inputCostPer1M: 0.15,   outputCostPer1M: 0.60,  carbonPer1kTokens: 0.25,  carbonMultiplier: 1.0,  waterMultiplier: 1.0  },
+  "claude-3.5-sonnet":  { id: "claude-3.5-sonnet",  name: "Claude 3.5 Sonnet",   inputCostPer1M: 3.00,   outputCostPer1M: 15.00, carbonPer1kTokens: 0.45,  carbonMultiplier: 1.6,  waterMultiplier: 1.4  },
+  "llama-3.1-70b":      { id: "llama-3.1-70b",      name: "Llama 3.1 70B",       inputCostPer1M: 0.00,   outputCostPer1M: 0.00,  carbonPer1kTokens: 0.35,  carbonMultiplier: 1.2,  waterMultiplier: 1.1  },
+  "mistral-large":      { id: "mistral-large",      name: "Mistral Large",       inputCostPer1M: 2.00,   outputCostPer1M: 6.00,  carbonPer1kTokens: 0.40,  carbonMultiplier: 1.4,  waterMultiplier: 1.3  },
 };
 
 // Simple tokenizer (approximation: ~4 chars per token for English)
@@ -97,9 +102,9 @@ export interface EcoImpact {
 }
 
 export function calculateEco(totalTokens: number, model: ModelInfo): EcoImpact {
-  const carbonGrams = (totalTokens / 1000) * model.carbonPer1kTokens;
-  const waterMl = totalTokens * 0.5;
-  const energyWh = totalTokens * 0.001;
+  const carbonGrams = (totalTokens / 1000) * model.carbonPer1kTokens * model.carbonMultiplier;
+  const waterMl = totalTokens * 0.5 * model.waterMultiplier;
+  const energyWh = totalTokens * 0.001 * model.carbonMultiplier;
 
   const carbonAnalogy = carbonGrams < 1 
     ? `~${(carbonGrams * 1000).toFixed(0)}mg — a single breath` 
