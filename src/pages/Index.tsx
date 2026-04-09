@@ -1,16 +1,30 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { PromptInput } from "@/components/PromptInput";
 import { ResponsePanel } from "@/components/ResponsePanel";
 import { AnalyticsSidebar } from "@/components/AnalyticsSidebar";
 import { TrimmedPromptModal } from "@/components/TrimmedPromptModal";
 import {
-  MODELS, countTokens, analyzeTfIdf, calculateCost, calculateEco,
-  generateMockResponse, trimPrompt,
+  MODELS, countTokens, trimPrompt,
   type TokenAnalysis, type CostResult, type EcoImpact,
 } from "@/lib/analysis";
 
 type ViewMode = "normal" | "heatmap" | "ghost";
+
+interface AnalyzeApiResponse {
+  success: boolean;
+  ai_response: string;
+  metrics: {
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+    cost_usd: number;
+    carbon_g: number;
+    water_ml: number;
+    energy_wh: number;
+  };
+  token_scores: Array<{ word: string; score: number }>;
+}
 
 export default function Index() {
   const [prompt, setPrompt] = useState("");
@@ -28,70 +42,70 @@ export default function Index() {
 
   const handleAnalyze = useCallback(async () => {
     if (!prompt.trim()) return;
+
     setIsAnalyzing(true);
     setViewMode("normal");
     setSavings(null);
 
     try {
-      const apiResponse = await fetch('http://localhost:8000/api/v1/analyze', {
-        method: 'POST',
+      const response = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: prompt,
-          model: selectedModel
+          prompt,
+          model: selectedModel,
         }),
       });
 
-      if (!apiResponse.ok) {
-        throw new Error(`API error: ${apiResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
       }
 
-      const data = await apiResponse.json();
+      const data = (await response.json()) as AnalyzeApiResponse;
 
-      // Process token scores to match frontend format
-      const processedTokens: TokenAnalysis[] = data.token_scores.map((t: { word: string; score: number }) => ({
-        word: t.word,
-        score: t.score,
-        isStopWord: t.score === 0.1
+      const processedTokens: TokenAnalysis[] = data.token_scores.map((token) => ({
+        word: token.word,
+        score: token.score,
+        isStopWord: token.score === 0.1,
       }));
 
-      // Calculate cost breakdown
-      const totalTokens = data.metrics.total_tokens;
       const inputTokens = data.metrics.input_tokens;
       const outputTokens = data.metrics.output_tokens;
+      const totalTokens = data.metrics.total_tokens;
       const totalCost = data.metrics.cost_usd;
-      const inputRatio = inputTokens / totalTokens;
-      const outputRatio = outputTokens / totalTokens;
+      const inputRatio = totalTokens > 0 ? inputTokens / totalTokens : 0.5;
+      const outputRatio = totalTokens > 0 ? outputTokens / totalTokens : 0.5;
 
       const costResult: CostResult = {
         inputTokens,
         outputTokens,
         inputCost: totalCost * inputRatio,
         outputCost: totalCost * outputRatio,
-        totalCost
+        totalCost,
       };
 
-      // Get eco data from backend
-      const model = MODELS[selectedModel];
       const ecoResult: EcoImpact = {
         carbonGrams: data.metrics.carbon_g,
         waterMl: data.metrics.water_ml,
         energyWh: data.metrics.energy_wh,
-        carbonAnalogy: data.metrics.carbon_g < 1 
-          ? `~${(data.metrics.carbon_g * 1000).toFixed(0)}mg — a single breath` 
-          : data.metrics.carbon_g < 10 
-          ? `Like charging your phone for ${(data.metrics.carbon_g / 8).toFixed(1)} minutes`
-          : `Equivalent to driving ${(data.metrics.carbon_g / 200).toFixed(2)} km`,
-        waterAnalogy: data.metrics.water_ml < 15 
-          ? `About ${Math.ceil(data.metrics.water_ml / 5)} sips of water`
-          : data.metrics.water_ml < 250
-          ? `~${(data.metrics.water_ml / 250).toFixed(1)} cups of water`
-          : `About ${(data.metrics.water_ml / 500).toFixed(1)} water bottles`,
-        energyAnalogy: data.metrics.energy_wh < 1
-          ? `${(data.metrics.energy_wh * 3600).toFixed(0)} joules — a LED bulb for ${(data.metrics.energy_wh / 0.01 * 36).toFixed(0)}s`
-          : `Running a 60W bulb for ${(data.metrics.energy_wh / 60 * 60).toFixed(1)} minutes`
+        carbonAnalogy:
+          data.metrics.carbon_g < 1
+            ? `~${(data.metrics.carbon_g * 1000).toFixed(0)}mg — a single breath`
+            : data.metrics.carbon_g < 10
+            ? `Like charging your phone for ${(data.metrics.carbon_g / 8).toFixed(1)} minutes`
+            : `Equivalent to driving ${(data.metrics.carbon_g / 200).toFixed(2)} km`,
+        waterAnalogy:
+          data.metrics.water_ml < 15
+            ? `About ${Math.ceil(data.metrics.water_ml / 5)} sips of water`
+            : data.metrics.water_ml < 250
+            ? `~${(data.metrics.water_ml / 250).toFixed(1)} cups of water`
+            : `About ${(data.metrics.water_ml / 500).toFixed(1)} water bottles`,
+        energyAnalogy:
+          data.metrics.energy_wh < 1
+            ? `${(data.metrics.energy_wh * 3600).toFixed(0)} joules — a LED bulb for ${(data.metrics.energy_wh / 0.01 * 36).toFixed(0)}s`
+            : `Running a 60W bulb for ${(data.metrics.energy_wh / 60 * 60).toFixed(1)} minutes`,
       };
 
       setTokens(processedTokens);
@@ -99,23 +113,9 @@ export default function Index() {
       setCost(costResult);
       setEco(ecoResult);
       setViewMode("heatmap");
-
     } catch (error) {
-      console.error('Analysis failed:', error);
-      // Fallback to mock data if API fails
-      const model = MODELS[selectedModel];
-      const tfidfTokens = analyzeTfIdf(prompt);
-      const mockResponse = generateMockResponse(prompt);
-      const inputTokenCount = countTokens(prompt);
-      const outputTokenCount = countTokens(mockResponse);
-      const costResult = calculateCost(inputTokenCount, outputTokenCount, model);
-      const ecoResult = calculateEco(inputTokenCount + outputTokenCount, model);
-
-      setTokens(tfidfTokens);
-      setResponse(mockResponse);
-      setCost(costResult);
-      setEco(ecoResult);
-      setViewMode("heatmap");
+      console.error("Analysis failed:", error);
+      alert("Unable to reach the backend at http://127.0.0.1:8000. Please make sure the backend is running.");
     } finally {
       setIsAnalyzing(false);
     }

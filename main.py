@@ -2,7 +2,7 @@
 TokenScope Backend API
 
 A FastAPI-based backend for AI Prompt Analytics Dashboard.
-Provides endpoints for analyzing prompts with Gemini AI, calculating costs,
+Provides endpoints for analyzing prompts with OpenAI, calculating costs,
 environmental impact, and TF-IDF token scores.
 """
 
@@ -12,7 +12,7 @@ from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
-import google.generativeai as genai
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
@@ -35,17 +35,35 @@ app.add_middleware(
 
 # Global dictionaries for calculations
 MODEL_PRICING = {
-    "gemini-1.5-flash": {
-        "input": 0.075,  # USD per 1M tokens
-        "output": 0.30   # USD per 1M tokens
+    "gpt-oss-20b": {
+        "input": 0.0,  # Free model
+        "output": 0.0   # Free model
+    },
+    "gpt-4o-mini": {
+        "input": 0.15,  # USD per 1M tokens
+        "output": 0.60   # USD per 1M tokens
+    },
+    "gpt-4": {
+        "input": 30.0,  # USD per 1M tokens
+        "output": 60.0   # USD per 1M tokens
     }
 }
 
 ENVIRONMENT_FACTORS = {
-    "gemini-1.5-flash": {
-        "co2_per_1k": 0.03,      # grams CO2 per 1000 tokens
-        "water_ml_per_query": 0.26,  # ml water per query
-        "energy_wh": 0.24        # watt-hours per query
+    "gpt-oss-20b": {
+        "co2_per_1k": 0.02,       # grams CO2 per 1000 tokens (efficient open-source)
+        "water_ml_per_query": 0.15,  # ml water per query
+        "energy_wh": 0.15        # watt-hours per query
+    },
+    "gpt-4o-mini": {
+        "co2_per_1k": 0.025,      # grams CO2 per 1000 tokens
+        "water_ml_per_query": 0.22,  # ml water per query
+        "energy_wh": 0.20        # watt-hours per query
+    },
+    "gpt-4": {
+        "co2_per_1k": 0.04,       # grams CO2 per 1000 tokens
+        "water_ml_per_query": 0.35,  # ml water per query
+        "energy_wh": 0.30        # watt-hours per query
     }
 }
 
@@ -108,13 +126,13 @@ def calculate_tfidf_scores(text: str) -> list:
 class AnalyzeRequest(BaseModel):
     """Request model for prompt analysis."""
     prompt: str
-    model: str = "gemini-1.5-flash"
+    model: str = "gpt-oss-20b"
 
 
 @app.post("/api/v1/analyze")
 async def analyze_prompt(request: AnalyzeRequest):
     """
-    Analyze a prompt using Gemini AI and return analytics.
+    Analyze a prompt using OpenAI and return analytics.
 
     Args:
         request (AnalyzeRequest): The prompt and model to analyze
@@ -125,41 +143,55 @@ async def analyze_prompt(request: AnalyzeRequest):
     Raises:
         HTTPException: If prompt is empty or AI service fails
     """
+    # Model mapping for OpenRouter
+    OPENROUTER_MODEL_MAP = {
+        "gemini-1.5-flash": "openrouter/free",
+        "Gemini 1.5 Flash": "openrouter/free",
+        "gpt-oss-20b": "openai/gpt-oss-20b",
+        "GPT-4o": "openai/gpt-4o",
+        "gpt-4o": "openai/gpt-4o"
+    }
+    
     # Validate input
     if not request.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
     try:
-        # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
+        # Configure OpenRouter API
+        api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
+            raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY not configured")
 
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(request.model)
+        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 
-        # Count input tokens
-        input_token_count = model.count_tokens(request.prompt)
-        input_tokens = input_token_count.total_tokens
-
+        # Map the model name to OpenRouter ID
+        actual_model_id = OPENROUTER_MODEL_MAP.get(request.model, "openrouter/free")
+        
         # Generate AI response
-        response = model.generate_content(request.prompt)
-        ai_response = response.text
+        response = client.chat.completions.create(
+            model=actual_model_id,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": request.prompt}
+            ]
+        )
+        ai_response = response.choices[0].message.content
 
-        # Get usage metadata
-        usage = response.usage_metadata
-        total_tokens = usage.total_token_count
-        output_tokens = total_tokens - input_tokens
+        # Get token counts from response
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+        total_tokens = response.usage.total_tokens
 
-        # Calculate costs
-        input_cost = (input_tokens / 1_000_000) * MODEL_PRICING[request.model]["input"]
-        output_cost = (output_tokens / 1_000_000) * MODEL_PRICING[request.model]["output"]
+        # Calculate costs (use original request.model as key for pricing lookup)
+        input_cost = (input_tokens / 1_000_000) * MODEL_PRICING.get(request.model, MODEL_PRICING["gpt-oss-20b"])["input"]
+        output_cost = (output_tokens / 1_000_000) * MODEL_PRICING.get(request.model, MODEL_PRICING["gpt-oss-20b"])["output"]
         cost_usd = input_cost + output_cost
 
         # Calculate environmental impact
-        carbon_g = (total_tokens / 1000) * ENVIRONMENT_FACTORS[request.model]["co2_per_1k"]
-        water_ml = ENVIRONMENT_FACTORS[request.model]["water_ml_per_query"]
-        energy_wh = ENVIRONMENT_FACTORS[request.model]["energy_wh"]
+        env_factors = ENVIRONMENT_FACTORS.get(request.model, ENVIRONMENT_FACTORS["gpt-oss-20b"])
+        carbon_g = (total_tokens / 1000) * env_factors["co2_per_1k"]
+        water_ml = env_factors["water_ml_per_query"]
+        energy_wh = env_factors["energy_wh"]
 
         # Calculate TF-IDF scores
         token_scores = calculate_tfidf_scores(request.prompt)
@@ -180,7 +212,9 @@ async def analyze_prompt(request: AnalyzeRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
+        error_str = str(e)
+        print(f"AI service error: {error_str}")
+        raise HTTPException(status_code=500, detail=f"AI service error: {error_str}")
 
 
 @app.get("/")
