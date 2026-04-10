@@ -36,15 +36,12 @@ export default function Index() {
 
   const handleAnalyze = useCallback(async () => {
     if (!prompt.trim()) return;
-
     setIsAnalyzing(true);
     setViewMode("normal");
     setSavings(null);
 
     try {
-      // Always use gemini-1.5-flash for the actual API call (only model supported by backend).
-      // The model dropdown is used locally to recalculate cost & eco estimates.
-      const payload = await analyzePrompt({ prompt, model: "gemini-1.5-flash" });
+      const payload = await analyzePrompt({ prompt, model: selectedModel });
       const model = MODELS[selectedModel];
 
       const tokenAnalysis = payload.token_scores.map((token) => ({
