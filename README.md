@@ -1,4 +1,4 @@
-# 🔍 TokenScope: Enterprise-Grade Prompt Auditor & Eco-Optimizer
+# 🔍 TokenScope: Prompt Auditor & Eco-Optimizer
 
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://visionauts.vercel.app/)
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel)](https://visionauts.vercel.app/)
