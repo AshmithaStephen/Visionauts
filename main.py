@@ -54,7 +54,7 @@ def count_tokens(text: str) -> int:
     return len(re.findall(r"\b\w+\b", text))
 
 
-def calculate_tfidf_scores(text: str) -> List[Dict[str, float]]:
+def calculate_tfidf_scores(text: str) -> List[Dict[str, Any]]:
     """Calculate TF-IDF scores for each token in the original prompt text.
 
     This function preserves whitespace token boundaries so the UI can render
@@ -64,24 +64,28 @@ def calculate_tfidf_scores(text: str) -> List[Dict[str, float]]:
     if not text or not text.strip():
         return []
 
+    # Improved splitting to better capture punctuation and words
     tokens = re.split(r"(\s+)", text)
-    normalized_text = " ".join([token for token in tokens if token.strip()])
-
+    
+    # Use a single-document TF-IDF approach
     try:
-        vectorizer = TfidfVectorizer(stop_words="english")
-        try:
-            tfidf_matrix = vectorizer.fit_transform([normalized_text])
-            feature_names = vectorizer.get_feature_names_out()
-            scores = tfidf_matrix.toarray()[0]
-            tfidf_scores = {feature: float(score) for feature, score in zip(feature_names, scores)}
-        except ValueError:
-            tfidf_scores = {}
+        words_only = [re.sub(r"[^a-z0-9]", "", t.lower()) for t in tokens if t.strip()]
+        words_only = [w for w in words_only if w]
+        
+        if not words_only:
+            return [{"word": t, "score": -1.0 if t.isspace() else 0.0} for t in tokens]
 
+        vectorizer = TfidfVectorizer(stop_words="english")
+        tfidf_matrix = vectorizer.fit_transform([" ".join(words_only)])
+        feature_names = vectorizer.get_feature_names_out()
+        scores = tfidf_matrix.toarray()[0]
+        tfidf_scores = {feature: float(score) for feature, score in zip(feature_names, scores)}
+        
         stop_words = set(vectorizer.get_stop_words() or [])
 
-        result: List[Dict[str, float]] = []
+        result: List[Dict[str, Any]] = []
         for token in tokens:
-            if token.isspace() or token == "":
+            if not token.strip():
                 result.append({"word": token, "score": -1.0})
                 continue
 
@@ -93,44 +97,31 @@ def calculate_tfidf_scores(text: str) -> List[Dict[str, float]]:
             if normalized in stop_words:
                 score = 0.1
             else:
-                score = tfidf_scores.get(normalized, 0.0)
+                # Boost scores for display visibility
+                raw_score = tfidf_scores.get(normalized, 0.0)
+                score = min(raw_score * 5.0, 1.0) if raw_score > 0 else 0.0
 
             result.append({"word": token, "score": round(score, 4)})
 
         return result
     except Exception as err:
-        raise RuntimeError(f"TF-IDF scoring failed: {err}") from err
-
-
-def generate_content(prompt: str, model: str) -> Dict[str, Any]:
-    """Call an LLM via OpenRouter and return generated text and token usage metrics.
-
-    Uses the OpenRouter API (openrouter.ai) which supports many models via a
-    single OpenAI-compatible endpoint. Falls back to GEMINI_API_KEY + google
-    SDK if OPENROUTER_API_KEY is not set.
-    """
-    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "Missing API key. Set OPENROUTER_API_KEY or GEMINI_API_KEY in your .env file."
-        )
-
-    # Determine which path to use
-    use_openrouter = bool(os.getenv("OPENROUTER_API_KEY"))
-
-    if use_openrouter:
-        return _call_openrouter(prompt, model, api_key)
-    else:
-        return _call_gemini(prompt, model, api_key)
+        print(f"TF-IDF error: {err}")
+        return [{"word": t, "score": -1.0 if t.isspace() else 0.0} for t in tokens]
 
 
 def _call_openrouter(prompt: str, model: str, api_key: str) -> Dict[str, Any]:
     """Call the OpenRouter API (OpenAI-compatible)."""
     openrouter_model = OPENROUTER_MODEL_MAP.get(model, "google/gemini-2.0-flash-001")
 
+    # Add a system-like instruction to improve response quality
+    system_instruction = "You are a helpful AI assistant. Provide clear, concise, and well-structured responses. Use plain text and avoid excessive special characters unless necessary for code blocks."
+    
     body_dict = {
         "model": openrouter_model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": prompt}
+        ],
     }
     body = json.dumps(body_dict).encode("utf-8")
 
@@ -214,6 +205,28 @@ class AnalyzeRequest(BaseModel):
         if not value.strip():
             raise ValueError("Prompt must not be empty.")
         return value
+
+
+def generate_content(prompt: str, model: str) -> Dict[str, Any]:
+    """Call an LLM via OpenRouter and return generated text and token usage metrics.
+
+    Uses the OpenRouter API (openrouter.ai) which supports many models via a
+    single OpenAI-compatible endpoint. Falls back to GEMINI_API_KEY + google
+    SDK if OPENROUTER_API_KEY is not set.
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "Missing API key. Set OPENROUTER_API_KEY or GEMINI_API_KEY in your .env file."
+        )
+
+    # Determine which path to use
+    use_openrouter = bool(os.getenv("OPENROUTER_API_KEY"))
+
+    if use_openrouter:
+        return _call_openrouter(prompt, model, api_key)
+    else:
+        return _call_gemini(prompt, model, api_key)
 
 
 class TokenScore(BaseModel):

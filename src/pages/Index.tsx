@@ -62,7 +62,11 @@ export default function Index() {
 
       setCost(calculateCost(payload.metrics.input_tokens, payload.metrics.output_tokens, model));
       setEco(calculateEco(payload.metrics.total_tokens, model));
-      setViewMode("heatmap");
+
+      // Force view mode to heatmap after analysis
+      if (tokenAnalysis.length > 0) {
+        setViewMode("heatmap");
+      }
     } catch (error: any) {
       console.error("Analysis request failed", error);
       setResponse(`Error: ${error.message}`);
