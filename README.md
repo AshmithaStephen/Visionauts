@@ -1,51 +1,42 @@
-# 🔍 TokenTrace: The Eco-Conscious Prompt Auditor for Developers
+# 🔍 TokenTrace: Enterprise-Grade Prompt Auditor & Eco-Optimizer
 
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Gemini AI](https://img.shields.io/badge/Gemini_1.5_Flash-4285F4?style=for-the-badge&logo=google-gemini&logoColor=white)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://visionauts.vercel.app/)
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel)](https://visionauts.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-blue?logo=next.js)](https://nextjs.org/)
 
-> **Developed by Team Visionauts**
-> 
-> **Target Audience:** Prompt Engineers, AI Developers, and DevOps Teams.
->
-> **The Problem:** Modern AI development suffers from "Token Bloat." 40% of prompt volume is often conversational noise, leading to higher API latency, ballooning costs, and an unnecessary environmental footprint.
->
-> **The Solution:** TokenTrace is a developer-first tool designed to audit, optimize, and "slay" computational waste at the source. It provides the transparency needed to build sustainable, cost-efficient AI pipelines.
+> **Visionauts** presents a specialized observability tool designed for DevOps and Prompt Engineers to eliminate "Computational Noise" and reduce AI inference overhead.
 
 ---
 
-## 🛠️ Built for Developers
+## 🛠️ The Problem: Token Bloat
+In modern LLM workflows, up to **40% of input tokens** consist of conversational filler. For enterprise teams, this results in:
+* **Increased Latency:** High TTFT (Time To First Token).
+* **Infrastructure Waste:** Massive invisible water/carbon footprints.
+* **Cost Inefficiency:** Inflated API bills on frontier models like GPT-4.
 
-Unlike generic AI tools, **TokenTrace** is engineered for the developer workflow:
+## 🚀 Key Features
 
-### ⚡ Prompt Refactoring (Audit & Slay)
-Developers can instantly refactor "wordy" prompts into lean, high-performance instructions. By using **Gemini 1.5 Flash** to audit input, TokenTrace ensures that only high-value tokens are sent to expensive models like GPT-4 or Claude Opus.
+### 1. **Bioluminescent Heat-Map**
+Visualizes token importance using **TF-IDF heuristics**. It identifies high-value instructions versus "Computational Fat," helping engineers debug prompt density.
 
-### 🗺️ Visual Token Analytics (Heat-Map)
-A bioluminescent heat-map allows engineers to debug prompt importance in real-time. 
-- Identify which tokens are driving the logic.
-- Visualizing "Ghost Tokens" (low-impact noise) that can be removed to reduce latency.
+### 2. **The "Slay" Engine**
+Leverages **Gemini 1.5 Flash** as a specialized "Small Language Model" (SLM) auditor to perform lossless prompt compression—reducing payload size by up to 70%.
 
-### 📊 Sustainability CI/CD Metrics
-Track the **Hidden Cost of Inference**. TokenTrace gives developers the data they need for Green-Software reporting:
-- **$CO_2$ Avoided:** Emissions saved per optimized request.
-- **Thermal Efficiency:** Tracking the water footprint of data center cooling.
-- **Cost Reduction:** Direct mapping of saved tokens to API billing.
+### 3. **Sustainability Analytics**
+Real-time tracking of:
+- **Carbon Intensity ($CO_2$):** Calculated per 1k tokens.
+- **Water Consumption:** Tracking data center cooling metrics.
 
 ---
 
 ## 🏗️ Technical Architecture
 
-- **Engine:** Gemini 1.5 Flash (chosen for its high-speed/low-energy profile).
-- **Frontend:** React + Vite (Optimized for developer-speed).
-- **Type Safety:** 100% TypeScript for robust prompt-handling logic.
-- **UI/UX:** A "Midnight Audit" theme inspired by high-end engineering tools like LangSmith.
+- **Frontend:** React + Vite + TypeScript (Type-safe, high-performance UI)
+- **Styling:** Tailwind CSS (Midnight-Eco Theme)
+- **API Layer:** FastAPI / Next API Routes
+- **LLM Engine:** Google Gemini 1.5 Flash (Optimized for low-latency editing)
 
 ---
 
-## 💻 Getting Started
 
-1. **Clone & Install:**
-   ```bash
-   git clone [https://github.com/AshmithaStephen/Visionauts.git](https://github.com/AshmithaStephen/Visionauts.git)
-   cd Visionauts && npm install
+  
