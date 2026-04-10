@@ -20,7 +20,10 @@ export interface AnalyzeResponse {
 
 export async function analyzePrompt(payload: AnalyzeRequest): Promise<AnalyzeResponse> {
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
+    const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    const apiUrl = `${baseUrl}/api/v1/analyze`;
+
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
